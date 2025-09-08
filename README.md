@@ -1,36 +1,79 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🎨 Math Arena Frontend
 
-## Getting Started
+This is the **frontend** for the **Math Arena** game.  
+It is built with **Next.js**, **React.js**, and **Material-UI (MUI)**.  
+It handles user interface, authentication, gameplay UI, and API integration with the backend.
 
-First, run the development server:
+---
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## 📂 Project Structure
+
+```
+math-arena-frontend/
+│-- src/
+│   │-- app/               # Next.js App Router pages
+│   │-- components/        # Reusable React components (GameClient, UI, etc.)
+│   │-- lib/               # API helper functions
+│   │-- styles/            # Global styles and themes
+│
+│-- public/                # Static assets (icons, images)
+│-- .env.local             # Environment variables
+│-- package.json
+│-- README.md
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+## ⚙️ Setup
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 1️⃣ Prerequisites
+- [Node.js](https://nodejs.org/) (v18+ recommended)  
+- Backend server running ([Math Arena Backend](../math-arena-backend))  
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
+### 2️⃣ Install Dependencies
+```bash
+cd math-arena-frontend
+npm install
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### 3️⃣ Environment Variables
+Create a `.env.local` file in the project root (`math-arena-frontend/.env.local`) with:
 
-## Deploy on Vercel
+```env
+NEXT_PUBLIC_API_URL=http://localhost:${PORT}/api
+NEXT_PUBLIC_BACKEND_URL=http://localhost:${PORT}
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### 4️⃣ Start the Development Server
+```bash
+npm run dev
+```
+
+Frontend runs at:  
+👉 http://localhost:3000
+
+---
+
+## 🔑 Features
+
+- **Authentication** → Register, Login, Logout  
+- **Game UI** → Start game, answer questions, view results  
+- **API Integration** → Connects with Math Arena backend API  
+
+---
+
+## 🖼️ Assets
+
+Profile pictures are fetched from the backend:  
+
+```
+http://localhost:4000/profilePictures/<filename>
+```
+
+---
