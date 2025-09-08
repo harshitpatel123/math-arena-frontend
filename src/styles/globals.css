@@ -1,0 +1,10 @@
+body {
+  margin: 0;
+  font-family: Inter, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+  background: #f6f8fa;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
