@@ -1,0 +1,32 @@
+name: React CI - Hello from Actions
+
+on:
+  push:   # run on every push
+  pull_request:
+
+jobs:
+  hello-react:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout Code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Step 2: Setup Node.js environment
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'   # recommended for React
+
+      # Step 3: Install dependencies
+      - name: Install dependencies
+        run: npm install
+
+      # Step 4: Build React App
+      - name: Build React App
+        run: npm run build
+
+      # Step 5: Custom message
+      - name: Print Hello
+        run: echo "Hello from Actions!"
