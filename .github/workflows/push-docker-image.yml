@@ -1,0 +1,67 @@
+name: CI
+
+# Run on push to main and on pull requests targeting main
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build & Test (Node ${{ matrix.node-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18.x]     # change / extend to [16.x, 18.x] if you want matrix testing
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'                 # npm cache handled by setup-node
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint (if available)
+        # --if-present prevents failure if 'lint' script doesn't exist
+        run: npm run lint --if-present
+
+      - name: Run tests
+        # --if-present prevents failure if 'test' script doesn't exist
+        # For Jest, disable watch and collect coverage
+        run: npm test --if-present -- --watchAll=false --coverage
+
+      - name: Build production bundle
+        run: npm run build --if-present
+
+      - name: Upload build artifact
+        if: success() && steps['Build production bundle'].conclusion != 'skipped'
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: ./build        # change this to ./dist if your project outputs dist
+
+      - name: Archive node_modules (optional, for debugging)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: node-modules
+          path: node_modules
+
+      - uses: mr-smithers-excellent/docker-build-push@v6
+        name: Build & push Docker image
+        with:
+          image: harshit3703/demo
+          tags: v1, latest
+          registry: docker.io
+          dockerfile: ./Dockerfile
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD}}
