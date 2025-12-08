@@ -6,6 +6,9 @@ const API = axios.create({
 });
 
 API.interceptors.request.use((config) => {
+  if (config.url?.startsWith('/')) {
+    config.url = config.url.slice(1);
+  }
   if (typeof window !== 'undefined' && config.headers) {
     const token = localStorage.getItem('accessToken');
     if (token) config.headers['Authorization'] = `Bearer ${token}`;
