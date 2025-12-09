@@ -1,10 +1,40 @@
-body {
-  margin: 0;
-  font-family: Inter, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
-  background: #f6f8fa;
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply m-0 bg-white relative;
+    font-family: Inter, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+  }
+
+  body::before {
+    content: '';
+    @apply fixed inset-0 pointer-events-none overflow-hidden;
+    z-index: -1;
+    background-image: 
+      radial-gradient(circle 600px at 15% 20%, rgba(191, 219, 254, 0.4), transparent),
+      radial-gradient(circle 700px at 85% 15%, rgba(221, 214, 254, 0.35), transparent),
+      radial-gradient(circle 650px at 50% 80%, rgba(254, 202, 202, 0.3), transparent),
+      radial-gradient(circle 550px at 10% 70%, rgba(224, 242, 254, 0.35), transparent),
+      radial-gradient(circle 600px at 90% 85%, rgba(243, 232, 255, 0.3), transparent);
+  }
 }
 
-a {
-  color: inherit;
-  text-decoration: none;
+@layer components {
+  .glass-effect {
+    @apply bg-white/90 backdrop-blur-xl border border-white/30 shadow-2xl;
+  }
+  
+  .btn-primary {
+    @apply bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold py-3 px-6 rounded-xl shadow-lg hover:shadow-2xl hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100;
+  }
+  
+  .btn-secondary {
+    @apply bg-white text-gray-700 font-semibold py-3 px-6 rounded-xl border-2 border-gray-200 hover:border-purple-500 hover:text-purple-600 hover:shadow-lg transition-all duration-300;
+  }
+  
+  .input-field {
+    @apply w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-100 outline-none transition-all duration-300;
+  }
 }

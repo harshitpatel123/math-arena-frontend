@@ -1,24 +1,37 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useRouter } from 'next/navigation';
 import { useDispatch } from 'react-redux';
-import { setLoading } from '../../store/loadingSlice';
-import API from '../../lib/api';
+import { setLoading } from '../../../store/loadingSlice';
+import API from '../../../lib/api';
 import { toast } from 'react-toastify';
 import Image from 'next/image';
 
-export default function RegisterPage() {
+export default function EditProfilePage() {
   const router = useRouter();
   const dispatch = useDispatch();
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm();
+  const { register, handleSubmit, formState: { errors, isSubmitting }, setValue } = useForm();
+  const [user, setUser] = useState(null);
   const [profileFile, setProfileFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
 
   useEffect(() => {
+    const u = localStorage.getItem('user');
+    if (!u) {
+      router.push('/login');
+      return;
+    }
+    const userData = JSON.parse(u);
+    setUser(userData);
+    setValue('firstName', userData.firstName);
+    setValue('lastName', userData.lastName);
+    setValue('email', userData.email);
+    setValue('phoneNumber', userData.phoneNumber || '');
+    setValue('birthdate', userData.birthdate ? userData.birthdate.split('T')[0] : '');
     dispatch(setLoading(false));
-  }, [dispatch]);
+  }, [router, setValue, dispatch]);
 
   function handleFileChange(e) {
     if (e.target.files && e.target.files[0]) {
@@ -30,7 +43,7 @@ export default function RegisterPage() {
       }
 
       if (file.size > 5 * 1024 * 1024) {
-        toast.error('File size should be less than 2MB');
+        toast.error('File size should be less than 5MB');
         return;
       }
 
@@ -50,44 +63,103 @@ export default function RegisterPage() {
       const fd = new FormData();
       fd.append('firstName', formData.firstName);
       fd.append('lastName', formData.lastName);
-      fd.append('email', formData.email);
-      fd.append('password', formData.password);
       fd.append('phoneNumber', formData.phoneNumber || '');
       fd.append('birthdate', formData.birthdate || '');
       if (profileFile) fd.append('profilePicture', profileFile);
 
-      const res = await API.post('/auth/register', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
-      const accessToken = res.data.accessToken;
-      if (!accessToken) {
-        toast.error('Registration failed due to server error');
-        dispatch(setLoading(false));
-        return;
+      const res = await API.put('/auth/profile', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      
+      if (res.data.user) {
+        localStorage.setItem('user', JSON.stringify(res.data.user));
+        setUser(res.data.user);
       }
-      localStorage.setItem('accessToken', accessToken);
-      if (res.data.user) localStorage.setItem('user', JSON.stringify(res.data.user));
-      toast.success('Registration successful');
+      
+      toast.success('Profile updated successfully');
       router.push('/dashboard');
     } catch (err) {
       console.error(err);
-      toast.error('Registration failed');
+      toast.error(err.response?.data?.message || 'Failed to update profile');
       dispatch(setLoading(false));
     }
-  }
+  };
+
+  if (!user) return null;
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 py-12">
-      <div className="w-full max-w-2xl">
+    <div className="min-h-screen p-4 py-12 relative">
+
+      {/* Content */}
+      <div className="relative max-w-2xl mx-auto">
+        {/* Header */}
+        <div className="flex justify-between items-center mb-8">
+          <button
+            onClick={() => {
+              dispatch(setLoading(true));
+              router.push('/dashboard');
+            }}
+            className="px-6 py-2 bg-gray-500 text-white rounded-xl hover:bg-gray-600 transition-all duration-300 shadow-lg hover:shadow-xl"
+          >
+            ← Back
+          </button>
+        </div>
+
+        {/* Edit Profile Card */}
         <div className="glass-effect rounded-3xl p-8 shadow-2xl">
           {/* Header */}
           <div className="text-center mb-6">
             <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">
-              Join Math Arena
+              Edit Profile
             </h1>
-            <p className="text-gray-600">Create your account and start competing</p>
+            <p className="text-gray-600">Update your account information</p>
           </div>
 
           {/* Form */}
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            {/* Profile Picture */}
+            <div className="text-center mb-6">
+              <label className="block text-sm font-semibold text-gray-700 mb-3">Profile Picture</label>
+              {previewUrl ? (
+                <div className="relative inline-block">
+                  <Image
+                    src={previewUrl}
+                    alt="Preview"
+                    width={120}
+                    height={120}
+                    className="rounded-full object-cover border-4 border-purple-200"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleDiscardFile}
+                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-red-600 transition-colors shadow-lg"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ) : user?.profilePictureUrl ? (
+                <div className="relative inline-block">
+                  <Image
+                    src={`${process.env.NEXT_PUBLIC_BACKEND_URL}${user.profilePictureUrl}`}
+                    alt="Current"
+                    width={120}
+                    height={120}
+                    className="rounded-full object-cover border-4 border-purple-200"
+                  />
+                  <label className="absolute -bottom-2 -right-2 bg-purple-500 text-white rounded-full w-10 h-10 flex items-center justify-center hover:bg-purple-600 transition-colors shadow-lg cursor-pointer">
+                    📷
+                    <input hidden accept="image/*" type="file" onChange={handleFileChange} />
+                  </label>
+                </div>
+              ) : (
+                <label className="flex items-center justify-center w-32 h-32 mx-auto border-2 border-dashed border-gray-300 rounded-full cursor-pointer hover:border-purple-500 hover:bg-purple-50 transition-all duration-300">
+                  <div className="text-center">
+                    <div className="text-4xl mb-1">📷</div>
+                    <p className="text-xs text-gray-600">Upload</p>
+                  </div>
+                  <input hidden accept="image/*" type="file" onChange={handleFileChange} />
+                </label>
+              )}
+            </div>
+
             {/* Name Fields */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -95,7 +167,6 @@ export default function RegisterPage() {
                 <input
                   type="text"
                   className={`input-field ${errors.firstName ? 'border-red-500' : ''}`}
-                  placeholder="John"
                   {...register('firstName', { required: 'First name required' })}
                 />
                 {errors.firstName && <p className="text-red-500 text-sm mt-1">{errors.firstName.message}</p>}
@@ -106,35 +177,22 @@ export default function RegisterPage() {
                 <input
                   type="text"
                   className={`input-field ${errors.lastName ? 'border-red-500' : ''}`}
-                  placeholder="Doe"
                   {...register('lastName', { required: 'Last name required' })}
                 />
                 {errors.lastName && <p className="text-red-500 text-sm mt-1">{errors.lastName.message}</p>}
               </div>
             </div>
 
-            {/* Email */}
+            {/* Email (Read-only) */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Email *</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Email</label>
               <input
                 type="email"
-                className={`input-field ${errors.email ? 'border-red-500' : ''}`}
-                placeholder="john@example.com"
-                {...register('email', { required: 'Email required', pattern: { value: /^\S+@\S+\.\S+$/, message: 'Invalid email' } })}
+                className="input-field bg-gray-100 cursor-not-allowed"
+                {...register('email')}
+                disabled
               />
-              {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>}
-            </div>
-
-            {/* Password */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Password *</label>
-              <input
-                type="password"
-                className={`input-field ${errors.password ? 'border-red-500' : ''}`}
-                placeholder="Min 6 characters"
-                {...register('password', { required: 'Password required', minLength: { value: 6, message: 'Min 6 chars' } })}
-              />
-              {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password.message}</p>}
+              <p className="text-xs text-gray-500 mt-1">Email cannot be changed</p>
             </div>
 
             {/* Phone & Birthdate */}
@@ -160,39 +218,6 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            {/* Profile Picture */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Profile Picture</label>
-              {previewUrl ? (
-                <div className="relative inline-block">
-                  <Image
-                    src={previewUrl}
-                    alt="Preview"
-                    width={100}
-                    height={100}
-                    className="rounded-xl object-cover border-4 border-purple-200"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleDiscardFile}
-                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-red-600 transition-colors shadow-lg"
-                  >
-                    ✕
-                  </button>
-                </div>
-              ) : (
-                <label className="flex items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-purple-500 hover:bg-purple-50 transition-all duration-300">
-                  <div className="text-center">
-                    <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                      <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                    <p className="mt-2 text-sm text-gray-600">Click to upload image</p>
-                  </div>
-                  <input hidden accept="image/*" type="file" onChange={handleFileChange} />
-                </label>
-              )}
-            </div>
-
             {/* Buttons */}
             <div className="flex gap-3 pt-4">
               <button
@@ -208,18 +233,18 @@ export default function RegisterPage() {
                     </svg>
                   </span>
                 )}
-                <span className={isSubmitting ? 'invisible' : ''}>Create Account</span>
+                <span className={isSubmitting ? 'invisible' : ''}>💾 Save Changes</span>
               </button>
               
               <button
                 type="button"
                 onClick={() => {
                   dispatch(setLoading(true));
-                  router.push('/login');
+                  router.push('/dashboard');
                 }}
                 className="btn-secondary flex-1"
               >
-                Back to Login
+                Cancel
               </button>
             </div>
           </form>

@@ -1,5 +1,6 @@
 import '../styles/globals.css';
 import Providers from './providers/Providers';
+import AuthGuard from '../components/AuthGuard';
 
 export const metadata = {
   title: 'Math Arena',
@@ -9,8 +10,12 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body>
-        <Providers>{children}</Providers>
+      <body className="relative">
+        <Providers>
+          <AuthGuard>
+            {children}
+          </AuthGuard>
+        </Providers>
       </body>
     </html>
   );
