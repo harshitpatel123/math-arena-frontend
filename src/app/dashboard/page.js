@@ -6,12 +6,12 @@ import { useDispatch } from 'react-redux';
 import { setLoading } from '../../store/loadingSlice';
 import API from '../../lib/api';
 import { toast } from 'react-toastify';
-import Image from 'next/image';
 
 export default function Dashboard() {
   const router = useRouter();
   const dispatch = useDispatch();
   const [user, setUser] = useState(null);
+  const [imageError, setImageError] = useState(false);
 
   useEffect(() => {
     const u = localStorage.getItem('user');
@@ -79,13 +79,12 @@ export default function Dashboard() {
         {/* Profile Card */}
         <div className="glass-effect rounded-3xl p-8 mb-8 text-center transform hover:scale-[1.02] transition-transform duration-300">
           <div className="relative inline-block mb-4">
-            {user?.profilePictureUrl ? (
-              <Image
-                src={`${process.env.NEXT_PUBLIC_BACKEND_URL}${user.profilePictureUrl}`}
+            {user?.profilePictureUrl && !imageError ? (
+              <img
+                src={user.profilePictureUrl}
                 alt="Profile"
-                width={120}
-                height={120}
-                className="rounded-full border-4 border-purple-300 shadow-xl"
+                className="w-32 h-32 rounded-full border-4 border-purple-300 shadow-xl object-cover"
+                onError={() => setImageError(true)}
               />
             ) : (
               <div className="w-32 h-32 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-4xl font-bold border-4 border-purple-300 shadow-xl">

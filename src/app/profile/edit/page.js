@@ -7,15 +7,16 @@ import { useDispatch } from 'react-redux';
 import { setLoading } from '../../../store/loadingSlice';
 import API from '../../../lib/api';
 import { toast } from 'react-toastify';
-import Image from 'next/image';
+import { uploadToS3 } from '../../../lib/s3Upload';
 
 export default function EditProfilePage() {
   const router = useRouter();
   const dispatch = useDispatch();
-  const { register, handleSubmit, formState: { errors, isSubmitting }, setValue } = useForm();
+  const { register, handleSubmit, formState: { errors, isSubmitting }, setValue } = useForm({ mode: 'onSubmit' });
   const [user, setUser] = useState(null);
   const [profileFile, setProfileFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
+  const [imageError, setImageError] = useState(false);
 
   useEffect(() => {
     const u = localStorage.getItem('user');
@@ -28,7 +29,7 @@ export default function EditProfilePage() {
     setValue('firstName', userData.firstName);
     setValue('lastName', userData.lastName);
     setValue('email', userData.email);
-    setValue('phoneNumber', userData.phoneNumber || '');
+    setValue('phoneNumber', userData.phoneNumber);
     setValue('birthdate', userData.birthdate ? userData.birthdate.split('T')[0] : '');
     dispatch(setLoading(false));
   }, [router, setValue, dispatch]);
@@ -60,14 +61,25 @@ export default function EditProfilePage() {
   const onSubmit = async (formData) => {
     dispatch(setLoading(true));
     try {
-      const fd = new FormData();
-      fd.append('firstName', formData.firstName);
-      fd.append('lastName', formData.lastName);
-      fd.append('phoneNumber', formData.phoneNumber || '');
-      fd.append('birthdate', formData.birthdate || '');
-      if (profileFile) fd.append('profilePicture', profileFile);
+      let profilePictureUrl = user.profilePictureUrl;
+      
+      if (profileFile) {
+        try {
+          profilePictureUrl = await uploadToS3(profileFile);
+        } catch (error) {
+          toast.error('Failed to upload profile picture');
+          dispatch(setLoading(false));
+          return;
+        }
+      }
 
-      const res = await API.put('/auth/profile', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      const res = await API.put('/auth/profile', {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        phoneNumber: formData.phoneNumber,
+        birthdate: formData.birthdate || '',
+        profilePictureUrl
+      });
       
       if (res.data.user) {
         localStorage.setItem('user', JSON.stringify(res.data.user));
@@ -120,12 +132,10 @@ export default function EditProfilePage() {
               <label className="block text-sm font-semibold text-gray-700 mb-3">Profile Picture</label>
               {previewUrl ? (
                 <div className="relative inline-block">
-                  <Image
+                  <img
                     src={previewUrl}
                     alt="Preview"
-                    width={120}
-                    height={120}
-                    className="rounded-full object-cover border-4 border-purple-200"
+                    className="w-32 h-32 rounded-full object-cover border-4 border-purple-200"
                   />
                   <button
                     type="button"
@@ -135,14 +145,13 @@ export default function EditProfilePage() {
                     ✕
                   </button>
                 </div>
-              ) : user?.profilePictureUrl ? (
+              ) : user?.profilePictureUrl && !imageError ? (
                 <div className="relative inline-block">
-                  <Image
-                    src={`${process.env.NEXT_PUBLIC_BACKEND_URL}${user.profilePictureUrl}`}
+                  <img
+                    src={user.profilePictureUrl}
                     alt="Current"
-                    width={120}
-                    height={120}
-                    className="rounded-full object-cover border-4 border-purple-200"
+                    className="w-32 h-32 rounded-full object-cover border-4 border-purple-200"
+                    onError={() => setImageError(true)}
                   />
                   <label className="absolute -bottom-2 -right-2 bg-purple-500 text-white rounded-full w-10 h-10 flex items-center justify-center hover:bg-purple-600 transition-colors shadow-lg cursor-pointer">
                     📷
@@ -198,12 +207,12 @@ export default function EditProfilePage() {
             {/* Phone & Birthdate */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Phone Number</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Phone Number *</label>
                 <input
                   type="tel"
                   className={`input-field ${errors.phoneNumber ? 'border-red-500' : ''}`}
                   placeholder="9876543210"
-                  {...register('phoneNumber', { pattern: { value: /^[6-9]\d{9}$/, message: 'Invalid phone' } })}
+                  {...register('phoneNumber', { required: 'Phone number required', pattern: { value: /^[6-9]\d{9}$/, message: 'Invalid phone' } })}
                 />
                 {errors.phoneNumber && <p className="text-red-500 text-sm mt-1">{errors.phoneNumber.message}</p>}
               </div>

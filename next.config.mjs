@@ -3,15 +3,12 @@ const nextConfig = {
   images: {
     remotePatterns: [
       {
-        protocol: 'http',
-        hostname: 'localhost',
-        port: '4000',
-        pathname: '/profilePictures/**',
+        protocol: 'https',
+        hostname: '**',
       },
       {
         protocol: 'http',
         hostname: '**',
-        pathname: '/profilePictures/**',
       },
     ],
   },

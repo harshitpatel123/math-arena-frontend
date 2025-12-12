@@ -8,11 +8,12 @@ import { setLoading } from '../../store/loadingSlice';
 import API from '../../lib/api';
 import { toast } from 'react-toastify';
 import Image from 'next/image';
+import { uploadToS3 } from '../../lib/s3Upload';
 
 export default function RegisterPage() {
   const router = useRouter();
   const dispatch = useDispatch();
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm();
+  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({ mode: 'onSubmit' });
   const [profileFile, setProfileFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
 
@@ -47,24 +48,35 @@ export default function RegisterPage() {
   const onSubmit = async (formData) => {
     dispatch(setLoading(true));
     try {
-      const fd = new FormData();
-      fd.append('firstName', formData.firstName);
-      fd.append('lastName', formData.lastName);
-      fd.append('email', formData.email);
-      fd.append('password', formData.password);
-      fd.append('phoneNumber', formData.phoneNumber || '');
-      fd.append('birthdate', formData.birthdate || '');
-      if (profileFile) fd.append('profilePicture', profileFile);
-
-      const res = await API.post('/auth/register', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      const res = await API.post('/auth/register', {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        password: formData.password,
+        phoneNumber: formData.phoneNumber,
+        birthdate: formData.birthdate || ''
+      });
       const accessToken = res.data.accessToken;
       if (!accessToken) {
         toast.error('Registration failed due to server error');
         dispatch(setLoading(false));
         return;
       }
+      
       localStorage.setItem('accessToken', accessToken);
-      if (res.data.user) localStorage.setItem('user', JSON.stringify(res.data.user));
+      let user = res.data.user;
+      
+      if (profileFile && user) {
+        try {
+          const profilePictureUrl = await uploadToS3(profileFile);
+          const updateRes = await API.put('/auth/profile', { profilePictureUrl });
+          user = updateRes.data.user;
+        } catch (error) {
+          console.error('Failed to upload profile picture:', error);
+        }
+      }
+      
+      if (user) localStorage.setItem('user', JSON.stringify(user));
       toast.success('Registration successful');
       router.push('/dashboard');
     } catch (err) {
@@ -140,12 +152,12 @@ export default function RegisterPage() {
             {/* Phone & Birthdate */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Phone Number</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Phone Number *</label>
                 <input
                   type="tel"
                   className={`input-field ${errors.phoneNumber ? 'border-red-500' : ''}`}
                   placeholder="9876543210"
-                  {...register('phoneNumber', { pattern: { value: /^[6-9]\d{9}$/, message: 'Invalid phone' } })}
+                  {...register('phoneNumber', { required: 'Phone number required', pattern: { value: /^[6-9]\d{9}$/, message: 'Invalid phone' } })}
                 />
                 {errors.phoneNumber && <p className="text-red-500 text-sm mt-1">{errors.phoneNumber.message}</p>}
               </div>
