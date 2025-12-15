@@ -6,15 +6,36 @@ const API = axios.create({
 });
 
 API.interceptors.request.use((config) => {
-  if (config.url?.startsWith('/')) {
-    config.url = config.url.slice(1);
+  let url = config.url || "";
+
+  // Remove leading slashes
+  url = url.replace(/^\/+/, "");
+
+  // Always prefix api/ if missing
+  if (!url.startsWith("api/")) {
+    url = `api/${url}`;
   }
-  if (typeof window !== 'undefined' && config.headers) {
-    const token = localStorage.getItem('accessToken');
-    if (token) config.headers['Authorization'] = `Bearer ${token}`;
+
+  config.url = url;
+
+  // Attach token only in browser
+  if (typeof window !== "undefined" && config.headers) {
+    const token = localStorage.getItem("accessToken");
+    if (token) config.headers["Authorization"] = `Bearer ${token}`;
   }
+
+  // Log which URL is being requested
+  console.log("SERVER API Request:", {
+    fullUrl: `${process.env.NEXT_PUBLIC_API_URL}/${config.url}`,
+    method: config.method,
+    headers: config.headers,
+    data: config.data,
+  });
+
   return config;
 });
+
+
 
 API.interceptors.response.use(
   (res) => res,

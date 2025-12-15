@@ -44,8 +44,7 @@ npm install
 Create a `.env.local` file in the project root (`math-arena-frontend/.env.local`) with:
 
 ```env
-NEXT_PUBLIC_API_URL=http://localhost:${PORT}/api
-NEXT_PUBLIC_BACKEND_URL=http://localhost:${PORT}
+NEXT_PUBLIC_API_URL=http://localhost:${PORT}
 ```
 
 ---
